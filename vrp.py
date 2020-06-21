@@ -6,7 +6,7 @@ from copy import deepcopy
 
 
 
-def create_instance(n_nodes = 23, n_trucks=3, starting_nodes='default'):
+def create_instance(n_nodes = 25, n_trucks=2, starting_nodes='default'):
     # set seed 
     random.seed(0)             
     nodes = list(range(n_nodes))  
@@ -63,8 +63,9 @@ for i,k in itertools.product(nodes,trucks):
 z = {} # last node 
 for i,k in itertools.product(nodes,trucks):
     # declarate path variables 
-    z[(i,k)] = model.add_var(var_type = mip.BINARY , 
-                             name = f'end_node_{i}_{k}')
+    if i != origin[k]:
+        z[(i,k)] = model.add_var(var_type = mip.BINARY , 
+                                 name = f'end_node_{i}_{k}')
 
 
 # ======================== #
@@ -73,7 +74,7 @@ for i,k in itertools.product(nodes,trucks):
 
 # 0. end node codification  
 for k in trucks:
-    model.add_sos([(z[i,k],1) for i in nodes], sos_type=1) 
+    model.add_sos([(z[i,k],1) for i in nodes if i!= origin[k]], sos_type=1) 
 
 # 1. flow conservation
 for i,k in itertools.product(nodes,trucks):
@@ -95,7 +96,7 @@ for i in nodes:
 graph_len = len(nodes)
 for k in trucks:
     for i,j in itertools.product(nodes,nodes):
-        if i != j and (i != origin[k] and j!= origin[k]): # remove origin (?)
+        if i != j and (i != origin[k] and j!= origin[k]): # remove origin 
             model.add_constr(u[(i,k)] - u[(j,k)] + 1  <= graph_len*(1- x[(i,j,k)]) , name=f'subtour_constraint_{i}_{j}_{k}')
     
     model.add_constr(u[(origin[k],k)] == 1 , name=f'subtour_constraint_origin_{k}')
@@ -120,7 +121,7 @@ model.sens = mip.MINIMIZE
 # 1 (default) generates cutting planes in a moderate way,
 # 2 generates cutting planes aggressively  
 # 3 generates even more cutting planes
-model.cuts = 3 
+model.cuts = 2 
 model.max_mip_gap = 0.005 # 5%
 model.max_seconds = 15*60 
 model.optimize()
