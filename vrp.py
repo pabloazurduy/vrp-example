@@ -95,7 +95,7 @@ class VRPInstance(object):
         # save plot 
         f = plt.figure()
         nx.draw(G, pos=pos, with_labels = True, ax=f.add_subplot(111))
-        f.savefig(file_name)
+        f.savefig(file_name, dpi = 250)
 
 
 def find_optimal_solution(vrp_instance, objective_function = 'min_distance'):
@@ -194,7 +194,7 @@ def find_optimal_solution(vrp_instance, objective_function = 'min_distance'):
     # 3 generates even more cutting planes
     model.cuts = 2 
     model.max_mip_gap = 0.005 # 5%
-    model.max_seconds = 15*60 
+    model.max_seconds = 25*60 
     model.optimize()
 
     """
