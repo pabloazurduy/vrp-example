@@ -7,7 +7,7 @@ import networkx as nx
 import matplotlib.pyplot as plt
 
 class VRPInstance(object):
-    def __init__(self, nodes=[], nodes_pos = {}, trucks = [],origin = {}, cost_matrix =  None ):
+    def __init__(self, nodes=[], nodes_pos = {}, trucks = [],origin = {}, cost_matrix =  None ): # TODO add miga_and_bloqued
         """ create an empty instance
         """
         self.trucks = trucks
@@ -171,7 +171,7 @@ def find_optimal_solution(vrp_instance, objective_function = 'min_distance'):
         for i in nodes:
             if i != origin[k] :
                 model.add_constr(u[(i,k)] >=2  , name=f'subtour_constraint_lowerbound_{i}')
-                model.add_constr(u[(i,k)] <= graph_len , name=f'subtour_constraint_upperbound_{i}')
+                model.add_constr(u[(i,k)] <= graph_len -1, name=f'subtour_constraint_upperbound_{i}')
                 
 
     # ============================ #
@@ -181,9 +181,15 @@ def find_optimal_solution(vrp_instance, objective_function = 'min_distance'):
     # objective function
     if objective_function == 'min_distance':
         model.objective = mip.xsum([x[key]*vrp_instance.cost(key[0],key[1]) for key in x.keys()])
+
     elif objective_function == 'lowest_pos':
         model.objective = mip.xsum([u[key] for key in u.keys()])
-
+    
+    if objective_function == 'min_dist_max_len':
+        for key in u.keys():
+            model.add_constr(u[key] <= int(graph_len/len(trucks) *1.15) +1  , name='max_len')
+        model.objective = mip.xsum([x[key]*vrp_instance.cost(key[0],key[1]) for key in x.keys()])
+    
     model.sens = mip.MINIMIZE
 
     # model tunning
@@ -193,7 +199,7 @@ def find_optimal_solution(vrp_instance, objective_function = 'min_distance'):
     # 2 generates cutting planes aggressively  
     # 3 generates even more cutting planes
     model.cuts = 2 
-    model.max_mip_gap = 0.005 # 5%
+    model.max_mip_gap = 0.005 # 0.5%
     model.max_seconds = 25*60 
     model.optimize()
 
@@ -222,3 +228,6 @@ if __name__ == "__main__":
     vrp_instance.plot_solution(x, file_name = 'min_distance.png')
     x_lp = find_optimal_solution(vrp_instance, objective_function='lowest_pos')
     vrp_instance.plot_solution(x_lp, file_name = 'lowest_pos.png')
+    x_lp = find_optimal_solution(vrp_instance, objective_function='min_dist_max_len')
+    vrp_instance.plot_solution(x_lp, file_name = 'min_dist_max_len.png')
+    
