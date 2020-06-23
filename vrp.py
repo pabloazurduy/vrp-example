@@ -156,7 +156,8 @@ def find_optimal_solution(vrp_instance, objective_function = 'min_distance'):
 
     # 3. demand fulfillment
     for i in nodes:
-        model.add_constr(mip.xsum([ y[(i,k)] for k in trucks]) == 1 , name=f'y[{i}{k}]_cod') 
+        if i not in origin.values(): # is not an origin node
+            model.add_constr(mip.xsum([ y[(i,k)] for k in trucks]) == 1 , name=f'y[{i}{k}]_cod') 
 
     
     # 4. subtour elimination 
