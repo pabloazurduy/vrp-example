@@ -7,7 +7,7 @@ import networkx as nx
 import matplotlib.pyplot as plt
 
 class VRPInstance(object):
-    def __init__(self, nodes=[], nodes_pos = {}, trucks = [],origin = {}, cost_matrix =  None ): # TODO add miga_and_bloqued
+    def __init__(self, nodes=[], nodes_pos = {}, trucks = [], origin = {}, cost_matrix =  None ): # TODO add miga_and_bloqued
         """ create an empty instance
         """
         self.trucks = trucks
@@ -65,8 +65,11 @@ class VRPInstance(object):
     def nodes(self):
         return list(self.graph.nodes)
     
-    def cost(self, i,j):
-        return self.cost_matrix[i][j]
+    def cost(self, i,j,k):
+        if j != self.origin[k]:
+            return self.cost_matrix[i][j]
+        else:
+            return 0 # no cost for return to origin 
 
     @classmethod
     def generate_random_distance_instance(cls, n_nodes, n_trucks):
@@ -127,13 +130,6 @@ def find_optimal_solution(vrp_instance, objective_function = 'min_distance'):
         u[(i,k)] = model.add_var(var_type = mip.INTEGER , 
                                 name = f'order_{i}_{k}')
 
-    z = {} # last node 
-    for i,k in itertools.product(nodes,trucks):
-        # declarate path variables 
-        if i != origin[k]:
-            z[(i,k)] = model.add_var(var_type = mip.BINARY , 
-                                    name = f'end_node_{i}_{k}')
-
 
     # ======================== #
     # ===== constraints ====== #
@@ -141,13 +137,13 @@ def find_optimal_solution(vrp_instance, objective_function = 'min_distance'):
 
     # 0. end node codification  
     for k in trucks:
-        model.add_sos([(z[i,k],1) for i in nodes if i!= origin[k]], sos_type=1) 
+        model.add_constr(mip.xsum([x[(origin[k],j,k)] for j in nodes if j!= origin[k]]) <= 1, name=f'origin_out_cod_{k}' ) 
 
     # 1. flow conservation
     for i,k in itertools.product(nodes,trucks):
         if i != origin[k]:
             model.add_constr(mip.xsum([x[(j,i,k)] for j in nodes if j!=i ]) == # lo que entra
-                            mip.xsum([x[(i,j,k)] for j in nodes if j!=i ]) - z[i,k] , # lo que sale
+                            mip.xsum([x[(i,j,k)] for j in nodes if j!=i ]) , # lo que sale
                             name = f'flow_conservation_{i}_{k}' ) 
 
     # 2. y codification 
@@ -181,7 +177,7 @@ def find_optimal_solution(vrp_instance, objective_function = 'min_distance'):
 
     # objective function
     if objective_function == 'min_distance':
-        model.objective = mip.xsum([x[key]*vrp_instance.cost(key[0],key[1]) for key in x.keys()])
+        model.objective = mip.xsum([x[key]*vrp_instance.cost(key[0],key[1],key[2]) for key in x.keys()])
 
     elif objective_function == 'lowest_pos':
         model.objective = mip.xsum([u[key] for key in u.keys()])
@@ -189,7 +185,7 @@ def find_optimal_solution(vrp_instance, objective_function = 'min_distance'):
     if objective_function == 'min_dist_max_len':
         for key in u.keys():
             model.add_constr(u[key] <= int(graph_len/len(trucks) *1.15) +1  , name='max_len')
-        model.objective = mip.xsum([x[key]*vrp_instance.cost(key[0],key[1]) for key in x.keys()])
+        model.objective = mip.xsum([x[key]*vrp_instance.cost(key[0],key[1],key[2]) for key in x.keys()])
     
     model.sens = mip.MINIMIZE
 
@@ -222,7 +218,7 @@ def find_optimal_solution(vrp_instance, objective_function = 'min_distance'):
 if __name__ == "__main__":
     # generate a instance 
     vrp_instance = VRPInstance.generate_random_xy_instance(n_nodes = 15, 
-                                                           n_trucks=2, 
+                                                           n_trucks= 2, 
                                                            starting_nodes='default')
     
     x = find_optimal_solution(vrp_instance, objective_function='min_distance')
