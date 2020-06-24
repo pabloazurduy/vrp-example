@@ -122,20 +122,21 @@ class VRPInstance(object):
         values = {}
         for k in self.trucks:
             df_x = [key for key in x.keys() if x[key].x == 1]
-            if len(df_x)>0:
-                df_x = pd.DataFrame(df_x, columns=['i','j','k'])
-                df_x = df_x.query(f'k=={k}')
+            df_x = pd.DataFrame(df_x, columns=['i','j','k'])
+            df_x = df_x.query(f'k=={k}')
+            if df_x.shape[0] > 0:
+                print(df_x)
                 values[k] = [df_x.iloc[0][['i','j']].values[0]]
                 index = values[k][-1]
                 counter = 0
                 while counter < df_x.shape[0]-1:
-                    values[k] += [df_x.loc[index][['i','j']].values[1]]
+                    values[k] += [df_x.query(f'j=={index}')['j'].values[0]]
                     index = values[k][-1]
                     counter += 1
 
-        for k in self.trucks:
+        for k in values.keys():
             print('total nodes served by {0} = {1}'.format(k, len(values[k])))
-        for k in self.trucks:
+        for k in values.keys():
             print('node_list = {}'.format(values[k]))
 
 def find_optimal_solution(vrp_instance, objective_function = 'min_distance'):
