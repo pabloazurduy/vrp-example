@@ -207,11 +207,24 @@ def find_optimal_solution(vrp_instance, objective_function = 'min_distance'):
     for key,var in y.items():
         print('y',key, var.x)
     """
+    values = {}
     for k in trucks:
-        print('total nodes served by {0} = {1}'.format(k, sum([y[(i,k)].x for i in nodes ])))
+        df_x = [key for key in x.keys() if x[key].x == 1]
+        if len(df_x)>0:
+            df_x = pd.DataFrame(df_x, columns=['i','j','k'])
+            df_x = df_x.query(f'k=={k}')
+            values[k] = [df_x.iloc[0][['i','j']].values[0]]
+            index = values[k][-1]
+            counter = 0
+            while counter < df_x.shape[0]-1:
+                values[k] += [df_x.loc[index][['i','j']].values[1]]
+                index = values[k][-1]
+                counter += 1
 
     for k in trucks:
-        print('node_list = {}'.format([ i for i in nodes if y[(i,k)].x == 1]))
+        print('total nodes served by {0} = {1}'.format(k, len(values[k])))
+    for k in trucks:
+        print('node_list = {}'.format(values[k]))
     
     return x
 
