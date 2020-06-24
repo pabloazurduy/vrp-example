@@ -83,7 +83,7 @@ class VRPInstance(object):
         pos=nx.get_node_attributes(G,'pos')
         nx.draw(G, pos=pos, with_labels = True)
     
-    def plot_solution(self, x, file_name='graph.png'):
+    def plot_solution(self, x, y, file_name='graph.png'):
         """ 
         plot the solution 
 
@@ -94,12 +94,49 @@ class VRPInstance(object):
         G = deepcopy(self.graph)
         G.add_edges_from([(key[0], key[1]) for key in x.keys() if x[key].x == 1]) 
         pos = nx.get_node_attributes(G,'pos')
+        diccionario_camiones = dict([key for key in y.keys() if y[key].x==1])
+        node_color = self.nodes
+        for key in diccionario_camiones.keys():
+            node_color[key] = diccionario_camiones[key]
         
-        # save plot 
+        max_color = np.max(node_color) + 1
+        labels = {nodo:nodo for nodo in self.nodes}
+        origen = self.origin
+        for k in origen.keys():
+            labels[origen[k]] = str(labels[origen[k]])+'*'
+        # save plot
+        if len(node_color) != len(pos):
+            node_color = []
         f = plt.figure()
-        nx.draw(G, pos=pos, with_labels = True, ax=f.add_subplot(111))
-        f.savefig(file_name, dpi = 250)
+        nx.draw(G, pos=pos, labels=labels,
+                node_color = node_color, cmap=plt.cm.spring,
+                with_labels = True, ax=f.add_subplot(111))
+        
+        """
+        for key,var in x.items():
+            print('x',key, var.x)
+    
+        for key,var in y.items():
+            print('y',key, var.x)
+        """
+        values = {}
+        for k in self.trucks:
+            df_x = [key for key in x.keys() if x[key].x == 1]
+            if len(df_x)>0:
+                df_x = pd.DataFrame(df_x, columns=['i','j','k'])
+                df_x = df_x.query(f'k=={k}')
+                values[k] = [df_x.iloc[0][['i','j']].values[0]]
+                index = values[k][-1]
+                counter = 0
+                while counter < df_x.shape[0]-1:
+                    values[k] += [df_x.loc[index][['i','j']].values[1]]
+                    index = values[k][-1]
+                    counter += 1
 
+        for k in self.trucks:
+            print('total nodes served by {0} = {1}'.format(k, len(values[k])))
+        for k in self.trucks:
+            print('node_list = {}'.format(values[k]))
 
 def find_optimal_solution(vrp_instance, objective_function = 'min_distance'):
     nodes = vrp_instance.nodes
@@ -200,32 +237,6 @@ def find_optimal_solution(vrp_instance, objective_function = 'min_distance'):
     model.max_seconds = 25*60 
     model.optimize()
 
-    """
-    for key,var in x.items():
-        print('x',key, var.x)
-
-    for key,var in y.items():
-        print('y',key, var.x)
-    """
-    values = {}
-    for k in trucks:
-        df_x = [key for key in x.keys() if x[key].x == 1]
-        if len(df_x)>0:
-            df_x = pd.DataFrame(df_x, columns=['i','j','k'])
-            df_x = df_x.query(f'k=={k}')
-            values[k] = [df_x.iloc[0][['i','j']].values[0]]
-            index = values[k][-1]
-            counter = 0
-            while counter < df_x.shape[0]-1:
-                values[k] += [df_x.loc[index][['i','j']].values[1]]
-                index = values[k][-1]
-                counter += 1
-
-    for k in trucks:
-        print('total nodes served by {0} = {1}'.format(k, len(values[k])))
-    for k in trucks:
-        print('node_list = {}'.format(values[k]))
-    
     return x
 
 if __name__ == "__main__":
