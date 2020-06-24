@@ -125,7 +125,6 @@ class VRPInstance(object):
             df_x = pd.DataFrame(df_x, columns=['i','j','k'])
             df_x = df_x.query(f'k=={k}')
             if df_x.shape[0] > 0:
-                print(df_x)
                 values[k] = [df_x.iloc[0][['i','j']].values[0]]
                 index = values[k][-1]
                 counter = 0
