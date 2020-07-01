@@ -5,6 +5,8 @@ from scipy.spatial import distance_matrix
 from copy import deepcopy
 import networkx as nx
 import matplotlib.pyplot as plt
+import pandas as pd
+import numpy as np
 
 class VRPInstance(object):
     def __init__(self, nodes=[], nodes_pos = {}, trucks = [], origin = {}, cost_matrix =  None ): # TODO add miga_and_bloqued
@@ -237,7 +239,7 @@ def find_optimal_solution(vrp_instance, objective_function = 'min_distance'):
     model.max_seconds = 25*60 
     model.optimize()
 
-    return x
+    return x, y
 
 if __name__ == "__main__":
     # generate a instance 
@@ -245,10 +247,10 @@ if __name__ == "__main__":
                                                            n_trucks= 2, 
                                                            starting_nodes='default')
     
-    x = find_optimal_solution(vrp_instance, objective_function='min_distance')
-    vrp_instance.plot_solution(x, file_name = 'min_distance.png')
+    x,y = find_optimal_solution(vrp_instance, objective_function='min_distance')
+    vrp_instance.plot_solution(x, y, file_name = 'min_distance.png')
     x_lp = find_optimal_solution(vrp_instance, objective_function='lowest_pos')
-    vrp_instance.plot_solution(x_lp, file_name = 'lowest_pos.png')
+    vrp_instance.plot_solution(x_lp, y, file_name = 'lowest_pos.png')
     x_lp = find_optimal_solution(vrp_instance, objective_function='min_dist_max_len')
-    vrp_instance.plot_solution(x_lp, file_name = 'min_dist_max_len.png')
+    vrp_instance.plot_solution(x_lp, y, file_name = 'min_dist_max_len.png')
     
