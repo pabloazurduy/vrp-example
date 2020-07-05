@@ -249,8 +249,8 @@ if __name__ == "__main__":
     
     x,y = find_optimal_solution(vrp_instance, objective_function='min_distance')
     vrp_instance.plot_solution(x, y, file_name = 'min_distance.png')
-    x_lp = find_optimal_solution(vrp_instance, objective_function='lowest_pos')
+    x_lp,y = find_optimal_solution(vrp_instance, objective_function='lowest_pos')
     vrp_instance.plot_solution(x_lp, y, file_name = 'lowest_pos.png')
-    x_lp = find_optimal_solution(vrp_instance, objective_function='min_dist_max_len')
+    x_lp,y = find_optimal_solution(vrp_instance, objective_function='min_dist_max_len')
     vrp_instance.plot_solution(x_lp, y, file_name = 'min_dist_max_len.png')
     
