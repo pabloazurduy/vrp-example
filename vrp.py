@@ -107,9 +107,9 @@ class VRPInstance(object):
         for k in origen.keys():
             labels[origen[k]] = str(labels[origen[k]])+'*'
         # save plot
+        f = plt.figure()
         if len(node_color) != len(pos):
             node_color = []
-        f = plt.figure()
         nx.draw(G, pos=pos, labels=labels,
                 node_color = node_color, cmap=plt.cm.spring,
                 with_labels = True, ax=f.add_subplot(111))
@@ -139,6 +139,8 @@ class VRPInstance(object):
             print('total nodes served by {0} = {1}'.format(k, len(values[k])))
         for k in values.keys():
             print('node_list = {}'.format(values[k]))
+        
+        f.savefig(file_name, dpi = 250)
 
 def find_optimal_solution(vrp_instance, objective_function = 'min_distance'):
     nodes = vrp_instance.nodes
@@ -226,6 +228,24 @@ def find_optimal_solution(vrp_instance, objective_function = 'min_distance'):
             model.add_constr(u[key] <= int(graph_len/len(trucks) *1.15) +1  , name='max_len')
         model.objective = mip.xsum([x[key]*vrp_instance.cost(key[0],key[1],key[2]) for key in x.keys()])
     
+    if objective_function == 'min_last_attended':
+        M = 10e6
+        t_len = {}
+        bin_l = {}
+        max_route = model.add_var(name='max_route', var_type = mip.CONTINUOUS)
+        
+        for k in trucks:
+            t_len[k] = model.add_var(name=f'route_len_{k}', var_type = mip.CONTINUOUS)
+            bin_l[k] = model.add_var(name=f'cod_route_max_{k}', var_type = mip.BINARY)
+
+            model.add_constr(t_len[k] == mip.xsum([ x[key] * vrp_instance.cost(key[0],key[1],k)  for key in x.keys() if key[2]==k ]), 
+                                 name = f'route_len_{k}')
+
+            model.add_constr(max_route >= t_len[k], name=f'max_route_cod_lb_{k}')
+            model.add_constr(max_route <= t_len[k] + M * (1-bin_l[k]), name=f'max_route_cod_ub_{k}')
+
+        model.objective = max_route
+
     model.sens = mip.MINIMIZE
 
     # model tunning
@@ -246,11 +266,14 @@ if __name__ == "__main__":
     vrp_instance = VRPInstance.generate_random_xy_instance(n_nodes = 15, 
                                                            n_trucks= 2, 
                                                            starting_nodes='default')
-    
+    """
     x,y = find_optimal_solution(vrp_instance, objective_function='min_distance')
     vrp_instance.plot_solution(x, y, file_name = 'min_distance.png')
     x_lp,y = find_optimal_solution(vrp_instance, objective_function='lowest_pos')
     vrp_instance.plot_solution(x_lp, y, file_name = 'lowest_pos.png')
     x_lp,y = find_optimal_solution(vrp_instance, objective_function='min_dist_max_len')
     vrp_instance.plot_solution(x_lp, y, file_name = 'min_dist_max_len.png')
+    """
+    x_lp,y = find_optimal_solution(vrp_instance, objective_function='min_last_attended')
+    vrp_instance.plot_solution(x_lp, y, file_name = 'min_last_attended.png')
     
